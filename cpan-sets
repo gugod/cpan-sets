@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+export CPANSET_ROOT=${HOME}/perl5/cpansets
+
+cpan-sets-usage() {
+    echo "Usage: cpan-sets <command>"
+    echo
+    echo "Commands:"
+    echo
+    echo "  list          - see the list of cpan sets"
+    echo "  create <name> - create a new set"
+    echo "  use    <name> - set the active cpanset"
+    echo "  remove <name> - nuke it"
+}
+
+cpan-sets-usage-create() {
+    echo "Usage: cpan-sets create <name>"
+}
+
+cpan-sets-init() {
+    if [[ ! -d "$CPANSET_ROOT" ]]; then
+        mkdir -p $CPANSET_ROOT
+        echo "$CPANSET_ROOT created"
+        echo "cpan-sets initialized."
+    fi
+}
+
+cpan-sets() {
+    cpan-sets-init
+    echo
+    case "$1" in
+        list)
+            \ls -1 $CPANSET_ROOT
+            ;;
+        create)
+            if [[ "$2" == "" ]]; then
+                cpan-sets-usage-create
+            else
+                mkdir -p "$CPANSET_ROOT/$2"
+                  echo ">> cpan set \"$2\" created"
+            fi
+            ;;
+        use)
+            if [[ "$2" == "" ]]; then
+                cpan-sets-usage-use
+            else
+                if [[ -d "$CPANSET_ROOT/$2" ]]; then
+                    local_lib_code=`perl -Mlocal::lib=$CPANSET_ROOT/$2`
+                    eval "export CPANSET_DEFAULT=$2"
+                    eval $local_lib_code
+                    
+                    echo $local_lib_code > "$CPANSET_ROOT/.init_default"
+                    echo "export CPANSET_DEFAULT=$2" >> "$CPANSET_ROOT/.init_default"
+
+                    echo ">> cpan set \"$2\" is activated."
+                else
+                    echo "The cpanset named \"$2\" is not there. Create it: cpan-sets create $2."
+                fi
+            fi
+            ;;
+        *)
+            cpan-sets-usage
+            ;;
+    esac
+    echo
+}
+
+alias cs=cpan-sets
+
+if [[ -f "$CPANSET_ROOT/.init_default" ]]; then
+    eval `cat "$CPANSET_ROOT/.init_default"`
+fi
